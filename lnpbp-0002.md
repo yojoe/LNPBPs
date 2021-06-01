@@ -40,16 +40,18 @@ License: CC0-1.0
 
 ## Abstract
 
-The standard defines an algorithm for deterministic embedding and verification
-of cryptographic commitments based on elliptic-curve public key tweaking 
-procedure defined in [LNPBP-1 standard](https://github.com/LNP-BP/LNPBPs/blob/master/lnpbp-0001.md)
-inside `scriptPubkey` script for existing types of Bitcoin transaction output.
+This standard defines an algorithm for deterministic embedding and verification
+of cryptographic commitments within the `scriptPubKey` part of Bitcoin transaction outputs.
+It depends on the elliptic-curve public-key-tweaking procedure which is defined in the 
+[LNPBP-1](https://github.com/LNP-BP/LNPBPs/blob/master/lnpbp-0001.md) standard.
+Naturally, only `scriptPubKey` types existing at the time of writing are covered here, 
+namely P2(W)PK(H), P2(W)SH, P2TR and OP_RETURN style types.
 
 
 ## Background
 
-Cryptographic commitments embedded into bitcoin transactions is a widely-used
-practice. Its application include timestamping [1], single-use seals [2],
+Embedding of cryptographic commitments into bitcoin transactions is a widely used
+practice. Occurrences include timestamping [1], single-use seals [2],
 pay-to-contract settlement schemes [3], sidechains [4], blockchain anchoring
 [5], Taproot, Graftroot proposals [6, 7, 8], Scriptless scripts [9] and many
 others.
@@ -57,32 +59,45 @@ others.
 
 ## Motivation
 
-A number of cryptographic commitment (CC) use cases require the commitment to be
-present within non-P2(W)PK(H) outputs, which may contain multiple public keys
-and need a more clear definition of how the public key can be found within the
-the bitcoin script itself. For instance, embedding CC into Lightning Network
-(LN) payment channel state updates in the current version require modification
-of an offered HTLC and received HTLC transaction outputs [10], and these
-transactions contain only a single P2WSH output. With the following updates [11]
-LN will likely change a single P2WPKH (named `to_remote`) output within the
-commitment transaction, also leading to a requirement for a standard and secure
-way of making CC inside P2(W)SH outputs.
+A multitude of Bitcoin based, cryptographic commitment (CC) use cases benefit from 
+the homomorphic properties of elliptic curve public keys. They allow for secure,
+privacy-preserving and blockspace-saving cryptographic commitments (CCs), by tweaking 
+a public key [12].
+However, many applications require a commitment to be present within non-P2(W)PK(H) 
+outputs. Whereas P2(W)PK(H) outputs are convenient carriers for CCs — because they are 
+unambiguously just a single public key — non-P2(W)PK(H) outputs can contain multiple 
+public keys. 
 
-At the same time, P2(W)SH and other non-standard outputs (like explicit bare
-script outputs, including OP_RETURN type) are not trivial to use in CC
-commitments, since CC requires deterministic definition of the actual commitment
-case. Normally, one of the most secure and standard CC scheme uses homomorphic
-properties of the public keys [12]; however multiple public keys may be used
-within non-P2(W)PK(H) output. Generally, these outputs present a hash of the
-actual script, hiding the information of the used public key or their hashes.
-Moreover, it raises the question of how the public key within Bitcoin Script may
-be defined/detected, since it is possible to represent the public key in a
-number of different ways within bitcoin script itself (explicitly or by a hash,
-and it's not trivial to understand where some hash stands for a public key or
-other type of preimage data). This all raises a requirement to define a standard
-way and some best practices for CC in non-P2(W)PK(H) outputs. This proposal
-tries to address the issue by proposing a common standard on the use of
-public-key based CC [12] withing all possible transaction output types.
+Hence, the purpose of this protocol is to guarantee — for co-operating parties only — 
+elimination of any ambiguity about which public key carries the commitment — while 
+hiding this fact from any non-involved party. 
+Moreover — due to the open, public, permissionless nature of Bitcoin blockchain 
+transactions — this protocol hides from non-involved parties at all, if a CC is present 
+or not, in a given Bitcoin transaction output.
+
+Hence, a clear and deterministic definition is presented, of how the respective public 
+key — which single-handedly carries the commitment — can be found among the multitude 
+of potential public keys within a Bitcoin `scriptPubKey` script.
+
+A similar need arises, when embedding CCs into Lightning Network (LN) payment channel 
+state updates. In the current LN version, commitment transaction outputs — which 
+must be tweaked for CCs — can either be P2WSH [10] or P2WPKH [11] outputs. Upcoming 
+LN versions will add additional P2WSH outputs [17, 18]. 
+Hence, there is the need for a standardized, safe (deterministic) way of embedding 
+CCs inside Lightning Network commitment transaction outputs (PW2SH).
+
+Additionally, P2(W)SH and other non-standard outputs (like explicit bare script outputs, 
+including OP_RETURN type) are not trivial to use for cryptographic commitments, because 
+CCs require deterministic definition of the actual commitment carrier. Generally, these 
+outputs just present a hash of the actual script, hiding the information of the used 
+public key(s) or their hashes. Moreover, it raises the question of how a public key can
+be defined/detected within Bitcoin Script, because it can be represented in various 
+different ways (explicitly or by a hash). It's not trivial to understand if given hash
+in a Bitcoin script represents a public key or some other type of preimage data. 
+All of this raises demand for a standard way of embedding CCs in non-P2(W)PK(H) outputs, 
+by using best practices. 
+This proposal tries to address the issues by proposing a common standard for the use of
+public-key-tweaking based CCs [12] within all possible Bitcoin transaction output types.
 
 
 ## Design
@@ -363,8 +378,8 @@ Authors would like to thank:
     <https://github.com/lightningnetwork/lightning-rfc/blob/v1.0/03-transactions.md#offered-htlc-outputs>
     and ["Received HTLC Outputs"]
     <https://github.com/lightningnetwork/lightning-rfc/blob/v1.0/03-transactions.md#received-htlc-outputs>.
-11. Rusty Russel. [Lightning-RFC (BOLTs) pull request #513]
-    <https://github.com/lightningnetwork/lightning-rfc/pull/513>
+11. Lightning Network BOLT-3 standard, version 1.0. Section ["to_remote Output"]
+    https://github.com/lightningnetwork/lightning-rfc/blob/v1.0/03-transactions.md#to_remote-output
 12. Maxim Orlovsky, et al. Key tweaking: collision-resistant elliptic 
     curve-based commitments (LNPBP-1 Standard).
     <https://github.com/LNP-BP/lnpbps/blob/master/lnpbp-0001.md>
@@ -376,6 +391,10 @@ Authors would like to thank:
     <https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki>
 16. Pieter Wuille, Andrew Poelsta. Miniscript. 
     <http://bitcoin.sipa.be/miniscript/>
+17. Lightning Network BOLT-3 standard, master branch. Section ["to_remote Output"]
+    https://github.com/lightningnetwork/lightning-rfc/blob/master/03-transactions.md#to_remote-output
+18. Lightning Network BOLT-3 standard, master branch. Section ["to_local_anchor and to_remote_anchor"]
+    https://github.com/lightningnetwork/lightning-rfc/blob/master/03-transactions.md#to_local_anchor-and-to_remote_anchor-output-option_anchor_outputs
 
 ## License
 
